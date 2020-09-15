@@ -23,7 +23,7 @@ class imageCapRS2:
         self.pipeline = rs.pipeline()
         self.config = rs.config()
         self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 60)
-        self.pipeline.start(rs.config())
+        self.pipeline.start(self.config)
 
         #initialize the values for the frame related variables
         self.frames = self.pipeline.wait_for_frames()

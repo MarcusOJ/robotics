@@ -1,16 +1,17 @@
 import numpy as np
 import cv2
 import time
+import RS_thread_example
 
-cap = cv2.VideoCapture(0)
+cap = RS_thread_example.imageCapRS2()
 
 #Blobdetector
 blobparams = cv2.SimpleBlobDetector_Params()
 blobparams.filterByArea = True
-blobparams.minArea = 2000
+blobparams.minArea = 20
 blobparams.maxArea = 2000000
 blobparams.filterByCircularity = False
-blobparams.minDistBetweenBlobs = 200
+blobparams.minDistBetweenBlobs = 50
 blobparams.filterByColor = True
 blobparams.blobColor = 255
 blobparams.filterByInertia = False
@@ -50,7 +51,7 @@ cv2.createTrackbar("v_max", "Processed", int(ct[5]), 255, updateValue)
 
 while(True):
     # Capture frame-by-frame
-    ret, frame = cap.read()
+    frame = cap.getFrame()
 
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
@@ -94,14 +95,15 @@ while(True):
     # Display the resulting frame
     cv2.imshow('Processed', thresholded)
     cv2.imshow("Object", img_cp)
-    #cv2.imshow("Original", frame)
+    # cv2.imshow("Original", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         f = open("trackbar_value.txt", "w+")
+        cap.setStopped(False)
         output = [lB, lG, lR, hB, hG, hR]
         f.write(str(output))
         f.close()
         break
 
 # When everything done, release the capture
-cap.release()
+
 cv2.destroyAllWindows()
