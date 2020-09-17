@@ -41,8 +41,8 @@ while(True):
 
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
-    lowerLimits = np.array([ct[0], ct[1], ct[2]])
-    upperLimits = np.array([ct[3], ct[4], ct[5]])
+    lowerLimits = np.array([int(ct[0]), int(ct[1]), int(ct[2])])
+    upperLimits = np.array([int(ct[3]), int(ct[4]), int(ct[5])])   
 
     # Our operations on the frame come here
     thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
