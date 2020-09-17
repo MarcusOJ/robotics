@@ -81,7 +81,7 @@ while(True):
     img_cp = frame.copy()
     keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if keypoints != []:
-        cv2.drawContours(img_cp, -1, (0,255,0))
+        cv2.drawContours(img_cp, -1, (0,255,0), 3)
         area = cv2.contourArea(keypoints[0][0])
         print(area)
 
