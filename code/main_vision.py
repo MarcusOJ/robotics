@@ -60,7 +60,7 @@ while(True):
     #keypoints = detector.detect(thresholded)
     keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if keypoints != []:
-        area = cv2.contourArea(keypoints[0])
+        area = cv2.contourArea(keypoints[0][0])
         print(area)
     """
     img_cp = frame.copy()
