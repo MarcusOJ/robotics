@@ -78,8 +78,10 @@ while(True):
 
     outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
 
+    img_cp = frame.copy()
     keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if keypoints != []:
+        cv2.drawContours(img_cp, -1, (0,255,0))
         area = cv2.contourArea(keypoints[0][0])
         print(area)
 
@@ -88,14 +90,14 @@ while(True):
     keypoints = detector.detect(thresholded)
     img_cp = frame.copy()
     img_cp = cv2.drawKeypoints(img_cp, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    """
+    
     if keypoints != []:    
         n = 0
         for i in keypoints:
             x = keypoints[n].pt
             cv2.putText(img_cp, "Ball here" + " X: " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
             n+=1
-    
+    """
 
     # Display the resulting frame
     cv2.imshow('Processed', thresholded)
