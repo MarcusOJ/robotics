@@ -59,8 +59,9 @@ while(True):
     #Keypoint detection
     #keypoints = detector.detect(thresholded)
     keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    #area = cv2.contourArea()
-    print(keypoints)
+    if keypoints != []:
+        area = cv2.contourArea(keypoints[0])
+        print(area)
     """
     img_cp = frame.copy()
     img_cp = cv2.drawKeypoints(img_cp, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
