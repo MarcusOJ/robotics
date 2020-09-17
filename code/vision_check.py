@@ -77,14 +77,16 @@ while(True):
     thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
 
     outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
-
-    img_cp = frame.copy()
-    keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if keypoints != []:
-        cv2.drawContours(img_cp, -1, 1, (0,255,0))
-        area = cv2.contourArea(keypoints[0][0])
-        print(area)
-
+    """
+    try:
+        img_cp = frame.copy()
+        keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        if keypoints != []:
+            cv2.drawContours(img_cp, keypoints[0][0], -1, (0,255,0), 3)
+            area = cv2.contourArea(keypoints[0][0])
+            print(area)
+    except Exception as e:
+        print(e)
     #Keypoint detection
     """
     keypoints = detector.detect(thresholded)
@@ -95,9 +97,9 @@ while(True):
         n = 0
         for i in keypoints:
             x = keypoints[n].pt
-            cv2.putText(img_cp, "Ball here" + " X: " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
+            cv2.putText(img_cp, "Ball here" + " size " + str(i.size) + "  " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
             n+=1
-    """
+    
 
     # Display the resulting frame
     cv2.imshow('Processed', thresholded)
