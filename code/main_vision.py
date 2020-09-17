@@ -18,12 +18,6 @@ blobparams.filterByInertia = False
 blobparams.filterByConvexity = False
 detector = cv2.SimpleBlobDetector_create(blobparams)
 
-def updateValue(new_value):
-    # make sure to write the new value into the global variable
-    global trackbar_value
-    trackbar_value = new_value
-    return  
-
 #Väärtuste lugemine failist
 default = [100, 100, 100, 100, 100, 100]
 try:
@@ -41,30 +35,14 @@ contents = contents.replace(",", " ")
 ct = contents.split()
 c.close()
 
-cv2.namedWindow("Processed")
-cv2.createTrackbar("h_min", "Processed", int(ct[0]), 179, updateValue)
-cv2.createTrackbar("s_min", "Processed", int(ct[1]), 255, updateValue)
-cv2.createTrackbar("v_min", "Processed", int(ct[2]), 255, updateValue)
-cv2.createTrackbar("h_max", "Processed", int(ct[3]), 179, updateValue)
-cv2.createTrackbar("s_max", "Processed", int(ct[4]), 255, updateValue)
-cv2.createTrackbar("v_max", "Processed", int(ct[5]), 255, updateValue)
-
 while(True):
     # Capture frame-by-frame
     frame = cap.getFrame()
 
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
-    # colour detection limits
-    lB = cv2.getTrackbarPos("h_min", "Processed")
-    lG = cv2.getTrackbarPos("s_min", "Processed")
-    lR = cv2.getTrackbarPos("v_min", "Processed")
-    hB = cv2.getTrackbarPos("h_max", "Processed")
-    hG = cv2.getTrackbarPos("s_max", "Processed")
-    hR = cv2.getTrackbarPos("v_max", "Processed")
-
-    lowerLimits = np.array([lB, lG, lR])
-    upperLimits = np.array([hB, hG, hR])
+    lowerLimits = np.array([ct[0], ct[1], ct[2]])
+    upperLimits = np.array([ct[3], ct[4], ct[5]])
 
     # Our operations on the frame come here
     thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
@@ -79,7 +57,11 @@ while(True):
     outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
 
     #Keypoint detection
-    keypoints = detector.detect(thresholded)
+    #keypoints = detector.detect(thresholded)
+    keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    #area = cv2.contourArea()
+    print(keypoints)
+    """
     img_cp = frame.copy()
     img_cp = cv2.drawKeypoints(img_cp, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     if keypoints != []:    
@@ -88,22 +70,12 @@ while(True):
             x = keypoints[n].pt
             cv2.putText(img_cp, "Ball here" + " X: " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
             n+=1
+    """
     
-    # Our operations on the frame come here
-    
-
     # Display the resulting frame
-    cv2.imshow('Processed', thresholded)
-    cv2.imshow("Object", img_cp)
-    # cv2.imshow("Original", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        f = open("trackbar_value.txt", "w+")
         cap.setStopped(False)
-        output = [lB, lG, lR, hB, hG, hR]
-        f.write(str(output))
-        f.close()
         break
 
 # When everything done, release the capture
 
-cv2.destroyAllWindows()
