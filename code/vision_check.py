@@ -50,6 +50,8 @@ cv2.createTrackbar("s_max", "Processed", int(ct[4]), 255, updateValue)
 cv2.createTrackbar("v_max", "Processed", int(ct[5]), 255, updateValue)
 
 while(True):
+    start_time = time.time()
+    
     # Capture frame-by-frame
     frame = cap.getFrame()
 
@@ -100,7 +102,10 @@ while(True):
             cv2.putText(img_cp, "Ball here" + " size " + str(i.size) + "  " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
             n+=1
     
-
+    
+    fps = (1 / (time.time() - start_time))
+    cv2.putText(img_cp, "FPS: " + str(round(fps)), (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+	
     # Display the resulting frame
     cv2.imshow('Processed', thresholded)
     cv2.imshow("Object", img_cp)
