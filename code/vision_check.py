@@ -1,9 +1,19 @@
 import numpy as np
 import cv2
 import time
-import RS_thread_example
+import pyrealsense2 as rs
 
-cap = RS_thread_example.imageCapRS2()
+pipeline = rs.pipeline()
+config = rs.config()
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 60)
+#pipeline.start(config)
+
+profile = pipeline.start(config)
+color_sensor = profile.get_device().query_sensors()[1]
+color_sensor.set_option(rs.option.enable_auto_exposure,False)
+color_sensor.set_option(rs.option.enable_auto_white_balance, False)
+color_sensor.set_option(rs.option.auto_exposure_priority, 0)
+color_sensor.set_option(rs.option.exposure, 78)
 
 #Blobdetector
 blobparams = cv2.SimpleBlobDetector_Params()
@@ -19,21 +29,21 @@ blobparams.filterByConvexity = False
 detector = cv2.SimpleBlobDetector_create(blobparams)
 
 def updateValue(new_value):
-    # make sure to write the new value into the global variable
-    global trackbar_value
-    trackbar_value = new_value
-    return  
+	# make sure to write the new value into the global variable
+	global trackbar_value
+	trackbar_value = new_value
+	return  
 
 #Väärtuste lugemine failist
 default = [100, 100, 100, 100, 100, 100]
 try:
-    c = open("trackbar_value.txt", "r")
+	c = open("trackbar_value.txt", "r")
 except FileNotFoundError:
-    c = open("trackbar_value.txt", "w+")
-    c.write(str(default))
+	c = open("trackbar_value.txt", "w+")
+	c.write(str(default))
 contents = c.read()
 if contents == "":
-    contents = str(default)
+	contents = str(default)
 
 contents = contents.replace("[", "")
 contents = contents.replace("]", "")
@@ -49,74 +59,77 @@ cv2.createTrackbar("h_max", "Processed", int(ct[3]), 179, updateValue)
 cv2.createTrackbar("s_max", "Processed", int(ct[4]), 255, updateValue)
 cv2.createTrackbar("v_max", "Processed", int(ct[5]), 255, updateValue)
 
+
+
+frameCounter = 0
+start_time = time.time()
+
 while(True):
-    start_time = time.time()
-    
-    # Capture frame-by-frame
-    frame = cap.getFrame()
-
-    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    
-    # colour detection limits
-    lB = cv2.getTrackbarPos("h_min", "Processed")
-    lG = cv2.getTrackbarPos("s_min", "Processed")
-    lR = cv2.getTrackbarPos("v_min", "Processed")
-    hB = cv2.getTrackbarPos("h_max", "Processed")
-    hG = cv2.getTrackbarPos("s_max", "Processed")
-    hR = cv2.getTrackbarPos("v_max", "Processed")
-
-    lowerLimits = np.array([lB, lG, lR])
-    upperLimits = np.array([hB, hG, hR])
-
-    # Our operations on the frame come here
-    thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
-
-    #Morphological operation
-    kernel = np.ones((5,5),np.uint8)
-    #erosion = cv2.erode(thresholded,kernel,iterations = 1)
-    #dilation = cv2.dilate(thresholded,kernel,iterations = 1)
-    #thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
-    thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
-
-    outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
-    """
-    try:
-        img_cp = frame.copy()
-        keypoints = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        if keypoints != []:
-            cv2.drawContours(img_cp, keypoints[0][0], -1, (0,255,0), 3)
-            area = cv2.contourArea(keypoints[0][0])
-            print(area)
-    except Exception as e:
-        print(e)
-    #Keypoint detection
-    """
-    keypoints = detector.detect(thresholded)
-    img_cp = frame.copy()
-    img_cp = cv2.drawKeypoints(img_cp, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    
-    if keypoints != []:    
-        n = 0
-        for i in keypoints:
-            x = keypoints[n].pt
-            cv2.putText(img_cp, "Ball here" + " size " + str(i.size) + "  " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
-            n+=1
-    
-    
-    fps = (1 / (time.time() - start_time))
-    cv2.putText(img_cp, "FPS: " + str(round(fps)), (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+	now_time = time.time()
 	
-    # Display the resulting frame
-    cv2.imshow('Processed', thresholded)
-    cv2.imshow("Object", img_cp)
-    # cv2.imshow("Original", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        f = open("trackbar_value.txt", "w+")
-        cap.setStopped(False)
-        output = [lB, lG, lR, hB, hG, hR]
-        f.write(str(output))
-        f.close()
-        break
+	# Capture frame-by-frame
+	frames = pipeline.wait_for_frames()
+	color_frame = frames.get_color_frame()
+	frame = np.asanyarray(color_frame.get_data())
+
+
+	hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+	
+	# colour detection limits
+	lB = cv2.getTrackbarPos("h_min", "Processed")
+	lG = cv2.getTrackbarPos("s_min", "Processed")
+	lR = cv2.getTrackbarPos("v_min", "Processed")
+	hB = cv2.getTrackbarPos("h_max", "Processed")
+	hG = cv2.getTrackbarPos("s_max", "Processed")
+	hR = cv2.getTrackbarPos("v_max", "Processed")
+
+	lowerLimits = np.array([lB, lG, lR])
+	upperLimits = np.array([hB, hG, hR])
+
+	# Our operations on the frame come here
+	thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
+
+	#Morphological operation
+	kernel = np.ones((5,5),np.uint8)
+	#erosion = cv2.erode(thresholded,kernel,iterations = 1)
+	#dilation = cv2.dilate(thresholded,kernel,iterations = 1)
+	#thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
+	thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
+
+	#outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
+	
+	keypoints = detector.detect(thresholded)
+	#img_cp = frame.copy()
+	img_cp = cv2.drawKeypoints(frame, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+	
+	if keypoints != []:    
+		n = 0
+		for i in keypoints:
+			x = keypoints[n].pt
+			cv2.putText(img_cp, "Ball here" + " size " + str(i.size) + "  " + str(round(x[0])) + " Y: " + str(round(x[1])), (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
+			n+=1
+	
+
+	frameCounter += 1
+	
+	if now_time-start_time >= 1:
+		print(frameCounter)
+		start_time = time.time()
+		frameCounter = 0
+	# Display the resulting frame
+	
+	
+	# Display the resulting frame
+	cv2.imshow('Processed', thresholded)
+	cv2.imshow("Object", img_cp)
+	# cv2.imshow("Original", frame)
+	if cv2.waitKey(1) & 0xFF == ord('q'):
+		f = open("trackbar_value.txt", "w+")
+		pipeline.stop()
+		output = [lB, lG, lR, hB, hG, hR]
+		f.write(str(output))
+		f.close()
+		break
 
 # When everything done, release the capture
 
