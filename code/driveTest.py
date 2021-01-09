@@ -48,13 +48,15 @@ def circleBall():
 
 
 def setspeed(suund):
-    speed = 50
+    speed = 10
     spd1 = int(wheelLogic(speed, wheelone, dist, suund))
     spd2 = int(wheelLogic(speed, wheeltwo, dist, suund))
     spd3 = int(wheelLogic(speed, wheelthree, dist, suund))
     text = ("sd:" + str(spd1) + ":" + str(spd2) + ":" + str(spd3) + "\r\n")
+    print(ser.read())
     ser.write('f0\r\n'.encode('utf-8'))
     ser.write(text.encode('utf-8'))
+    
     """"""
 
 def forwards():
@@ -84,6 +86,7 @@ while(True):
     #print(key)
     # if the 'q' key is pressed, stop the loop
     if key == ord("w"):
+        print("w")
         setspeed(90)
     if key == ord("d"):
         setspeed(180)
@@ -98,6 +101,7 @@ while(True):
     if key == ord("f"):
         stop()
     if key == ord("q"):
+        print("q")
         shutdown()
         ##cv2.imwrite("test.png", frame)
         break
