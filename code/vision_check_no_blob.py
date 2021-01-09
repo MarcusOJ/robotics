@@ -128,7 +128,7 @@ while(True):
 	frameCounter += 1
 	
 	if now_time-start_time >= 1:
-		print("FPS:", frameCounter," | " ,movement_action)
+		print("FPS:", frameCounter," | " ,movement_action, " | ", rad)
 		start_time = time.time()
 		frameCounter = 0
 	# Display the resulting frame

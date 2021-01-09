@@ -2,7 +2,7 @@ import serial
 import math
 import cv2
 import numpy as np
-import time
+from time import sleep
 
 dist = 0.115
 wheelone = 0
@@ -48,16 +48,27 @@ def circleBall():
 
 
 def setspeed(suund):
-    speed = 10
+    speed = 50
     spd1 = int(wheelLogic(speed, wheelone, dist, suund))
     spd2 = int(wheelLogic(speed, wheeltwo, dist, suund))
     spd3 = int(wheelLogic(speed, wheelthree, dist, suund))
     text = ("sd:" + str(spd1) + ":" + str(spd2) + ":" + str(spd3) + "\r\n")
-    print(ser.read())
-    ser.write('f0\r\n'.encode('utf-8'))
+    #ser.write('f0\r\n'.encode('utf-8'))
     ser.write(text.encode('utf-8'))
+    """
+    sleep(.1)
+    ser.read()
     
-    """"""
+    ### KUI HAKKAB KOKKU JOOKSMA ILMA PÕHHJUSETA SIIS PROOVI SEDA 
+
+    """
+    sleep(.1)
+    while(ser.inWaiting() > 0):
+        ser.read()
+    
+
+def close_connection():
+    ser.close()
 
 def forwards():
     setspeed(90)

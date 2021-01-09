@@ -2,7 +2,7 @@ import serial
 import math
 import cv2
 import numpy as np
-import time
+from time import sleep
 
 dist = 0.115
 wheelone = 0
@@ -36,28 +36,42 @@ def stop():
 
 
 def spinright():
-    ser.write('sd:-29:-29:-29\r\n'.encode('utf-8'))
+    ser.write('sd:-10:-10:-10\r\n'.encode('utf-8'))
 
 
 def spinleft():
-    ser.write('sd:29:29:29\r\n'.encode('utf-8'))
+    ser.write('sd:10:10:10\r\n'.encode('utf-8'))
 
 
 def circleBall():
     ser.write('sd:-9:0:0\r\n'.encode('utf-8'))
 
 
+def searchright():
+    ser.write('sd:16:16:16\r\n'.encode('utf-8'))
+
 def setspeed(suund):
-    speed = 3
+    speed = 25
     spd1 = int(wheelLogic(speed, wheelone, dist, suund))
     spd2 = int(wheelLogic(speed, wheeltwo, dist, suund))
     spd3 = int(wheelLogic(speed, wheelthree, dist, suund))
     text = ("sd:" + str(spd1) + ":" + str(spd2) + ":" + str(spd3) + "\r\n")
     #ser.write('f0\r\n'.encode('utf-8'))
     ser.write(text.encode('utf-8'))
+    sleep(.1)
+    ser.read()
+    
+    ### KUI HAKKAB KOKKU JOOKSMA ILMA PÕHHJUSETA SIIS PROOVI SEDA 
+
+    """
     while(ser.inWaiting() > 0):
         ser.read()
+    """
 
+
+def close_connection():
+    ser.close()
+    print("Serial connection closed!")
 
 def forwards():
     setspeed(90)
