@@ -3,6 +3,7 @@ import cv2
 import time
 import pyrealsense2 as rs
 import main_drive as md
+from time import sleep
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -58,14 +59,15 @@ color_frame = frames.get_color_frame()
 frame = np.asanyarray(color_frame.get_data())
 time.sleep(1)
 
-global time_passed, static_time
+global time_passed, static_time, movement_action
 time_passed = False
 static_time = time.time()
-send_dif = 0.7
-#search_send_dif = 1
-#search_send_passed = False
+send_dif = 0.2
+directed = False
+at_ball = False
 
-def send_command(can_send, command, search_send_dif=False):
+
+def send_command(can_send, command, value=1):
 	global time_passed, static_time
 	if(can_send):
 		if(command == "stop"):
@@ -78,23 +80,34 @@ def send_command(can_send, command, search_send_dif=False):
 			md.searchright()
 		elif(command == "f"):
 			md.forwards()
-			"""
-			if(search_send_dif):
-				md.stop()
-				search_send_passed = False
-			"""
+		elif(command == "spin"):
+			md.spin(value)
+		elif(command == "forward_adjust"):
+			md.forward_adjust(value)
 
 		time_passed = False
 		static_time = time.time()
 		print("saadetud")
 
-paigas = False
-thyst = 70
-found = False
-static_ball_time = time.time()
-ball_find_dif = 0.5
+def find_ball(time_passed):
+	send_command(time_passed, "searchright")
 
+def direct(time_passed, mapped_speed):
+	global movement_action
+	global directed
+	send_command(time_passed, "spin", mapped_speed * 5)
+	movement_action = "direct"
+	if(abs(mapped_speed) <= 1):
+		directed = True
 
+def drive_to(time_passed, mapped_speed, rad):
+	global movement_action
+	global directed, at_ball
+	send_command(time_passed, "forward_adjust", (mapped_speed-0.8) * 6)
+	movement_action = "drive_to"
+	print(rad)
+	if(rad > 28):
+		at_ball = True
 
 try:
 	while(True):
@@ -103,12 +116,7 @@ try:
 		#print(time_passed, now_time - static_time, now_time, static_time)
 		if(now_time - static_time >= send_dif):
 			time_passed = True
-		if(now_time - static_ball_time >= ball_find_dif):
-			found = False
-		"""
-		if(now_time - static_time >= search_send_dif):
-			search_send_passed = True
-		"""
+
 		# Capture frame-by-frame
 		frames = pipeline.wait_for_frames()
 		color_frame = frames.get_color_frame()
@@ -137,8 +145,6 @@ try:
 
 		if keypoints != []:
 
-			found = True
-
 			c = max(keypoints, key = cv2.contourArea)
 			x, rad = cv2.minEnclosingCircle(c)
 			#print(x, rad)	
@@ -147,7 +153,23 @@ try:
 			dif = 320 - x[0]
 			
 			# MOVEMENT SECTION
-			if(rad <= 25):
+			if(dif<0):
+				mapped_speed = ((dif - (-320))/(0 - (-320)))*(0 - 10) + 10
+			else:
+				mapped_speed = ((dif - 320)/(0 - 320))*(0 - (-10)) - 10
+
+			#print(mapped_speed)
+
+			if(directed):
+				if(at_ball):
+					md.stop()
+					print("kohal")
+				else:
+					drive_to(time_passed, mapped_speed, rad)
+			else:
+				direct(time_passed, mapped_speed)
+			"""
+			if(rad <= 23):
 				movement_action = "siin"
 				if(abs(dif) <= thyst):
 					movement_action = "siin2"
@@ -155,7 +177,7 @@ try:
 						movement_action = "siin3"
 						md.stop()
 						paigas = True
-					send_command(time_passed, "f")
+					send_command(time_passed, "f", dif)
 					movement_action = "forwards"
 				else:
 					paigas = False
@@ -169,7 +191,7 @@ try:
 					movement_action = "leftspin"
 
 			else:
-				print("ball infront")
+				movement_action = "ball infront"
 		else:
 			static_ball_time = time.time()
 			print("Static else")
@@ -178,6 +200,10 @@ try:
 			send_command(time_passed,"searchright")
 			movement_action = "searching"
 
+		"""
+		else:
+			find_ball(time_passed)
+			movement_action = "searching"
 
 		cv2.imshow("Object", frame)
 

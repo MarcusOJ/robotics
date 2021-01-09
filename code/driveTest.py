@@ -46,6 +46,8 @@ def spinleft():
 def circleBall():
     ser.write('sd:-9:0:0\r\n'.encode('utf-8'))
 
+def test(speed):
+    ser.write('sd:' + speed + ':5:5\r\n'.encode('utf-8'))
 
 def setspeed(suund):
     speed = 50
@@ -66,6 +68,8 @@ def setspeed(suund):
     while(ser.inWaiting() > 0):
         ser.read()
     
+
+
 
 def close_connection():
     ser.close()
@@ -111,6 +115,8 @@ while(True):
         spinleft()
     if key == ord("f"):
         stop()
+    if key == ord("t"):
+        test()
     if key == ord("q"):
         print("q")
         shutdown()

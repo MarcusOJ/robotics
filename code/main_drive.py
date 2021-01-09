@@ -50,8 +50,18 @@ def circleBall():
 def searchright():
     ser.write('sd:16:16:16\r\n'.encode('utf-8'))
 
+def spin(speed):
+    ser.write(('sd:' + str(speed) + ':0:0\r\n').encode('utf-8'))
+    sleep(0.05)
+    ser.read()
+
+def forward_adjust(speed):
+    ser.write(('sd:' + str(speed) + ':40:-40\r\n').encode('utf-8'))
+    sleep(0.05)
+    ser.read()    
+
 def setspeed(suund):
-    speed = 25
+    speed = 40
     spd1 = int(wheelLogic(speed, wheelone, dist, suund))
     spd2 = int(wheelLogic(speed, wheeltwo, dist, suund))
     spd3 = int(wheelLogic(speed, wheelthree, dist, suund))
