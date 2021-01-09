@@ -4,6 +4,7 @@ import time
 import pyrealsense2 as rs
 import main_drive as md
 from time import sleep
+import json
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -17,42 +18,25 @@ color_sensor.set_option(rs.option.enable_auto_white_balance, False)
 color_sensor.set_option(rs.option.auto_exposure_priority, 0)
 color_sensor.set_option(rs.option.exposure, 78)
 
-#Blobdetector
-"""
-blobparams = cv2.SimpleBlobDetector_Params()
-blobparams.filterByArea = True
-blobparams.minArea = 20
-blobparams.maxArea = 2000000
-blobparams.filterByCircularity = False
-blobparams.minDistBetweenBlobs = 50
-blobparams.filterByColor = True
-blobparams.blobColor = 255
-blobparams.filterByInertia = False
-blobparams.filterByConvexity = False
-detector = cv2.SimpleBlobDetector_create(blobparams)
-"""
-#Väärtuste lugemine failist
-default = [100, 100, 100, 100, 100, 100]
-try:
-    c = open("trackbar_value.txt", "r")
-except FileNotFoundError:
-    c = open("trackbar_value.txt", "w+")
-    c.write(str(default))
-contents = c.read()
-if contents == "":
-    contents = str(default)
+with open("values.json", "r") as jfile:
+	data = json.load(jfile)
 
-contents = contents.replace("[", "")
-contents = contents.replace("]", "")
-contents = contents.replace(",", " ")
-ct = contents.split()
-c.close()
+ball_lower_limits = np.array([data["ball"]["h_min"], data["ball"]["s_min"], data["ball"]["v_min"]])
+ball_upper_limits = np.array([data["ball"]["h_max"], data["ball"]["s_max"], data["ball"]["v_max"]])
+
+blue_lower_limits = np.array([data["bluegoal"]["h_min"], data["bluegoal"]["s_min"], data["bluegoal"]["v_min"]])
+blue_upper_limits = np.array([data["bluegoal"]["h_max"], data["bluegoal"]["s_max"], data["bluegoal"]["v_max"]])
+
+pink_lower_limits = np.array([data["pinkgoal"]["h_min"], data["pinkgoal"]["s_min"], data["pinkgoal"]["v_min"]])
+pink_upper_limits = np.array([data["pinkgoal"]["h_max"], data["pinkgoal"]["s_max"], data["pinkgoal"]["v_max"]])
+
+line_lower_limits = np.array([data["line"]["h_min"], data["line"]["s_min"], data["line"]["v_min"]])
+line_upper_limits = np.array([data["line"]["h_max"], data["line"]["s_max"], data["line"]["v_max"]])
+
+#todo variables for thresholded values
 
 frameCounter = 0
 start_time = time.time()
-
-lowerLimits = np.array([int(ct[0]), int(ct[1]), int(ct[2])])
-upperLimits = np.array([int(ct[3]), int(ct[4]), int(ct[5])])
 
 frames = pipeline.wait_for_frames()
 color_frame = frames.get_color_frame()
@@ -65,6 +49,8 @@ static_time = time.time()
 send_dif = 0.2
 directed = False
 at_ball = False
+throw_ready = False
+blue = False
 
 
 def send_command(can_send, command, value=1):
@@ -84,6 +70,8 @@ def send_command(can_send, command, value=1):
 			md.spin(value)
 		elif(command == "forward_adjust"):
 			md.forward_adjust(value)
+		elif(command == "circle"):
+			md.circleBall()
 
 		time_passed = False
 		static_time = time.time()
@@ -109,118 +97,106 @@ def drive_to(time_passed, mapped_speed, rad):
 	if(rad > 28):
 		at_ball = True
 
-try:
-	while(True):
-		now_time = time.time()
+def rotate(time_passed, rad, x, frame):
+	global movement_action
+	movement_action = "rotate"
+	if(blue):
+		keypoints = vision(frame, blue_lower_limits, blue_upper_limits)
+	else:
+		keypoints = vision(frame, pink_lower_limits, pink_upper_limits)
 
-		#print(time_passed, now_time - static_time, now_time, static_time)
-		if(now_time - static_time >= send_dif):
-			time_passed = True
-
-		# Capture frame-by-frame
-		frames = pipeline.wait_for_frames()
-		color_frame = frames.get_color_frame()
-		frame = np.asanyarray(color_frame.get_data())
-
-		hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-	    # Our operations on the frame come here
-		thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
-
-	    #Morphological operation
-		kernel = np.ones((5,5),np.uint8)
-	    #erosion = cv2.erode(thresholded,kernel,iterations = 1)
-	    #dilation = cv2.dilate(thresholded,kernel,iterations = 1)
-	    #thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
-		thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
-
-		#outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
-
-	    #Keypoint detection
-		#keypoints = detector.detect(thresholded)
+	if keypoints != []:
+		c = max(keypoints, key = cv2.contourArea)
+		x, rad = cv2.minEnclosingCircle(c)
 		
-		keypoints, erra = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-		movement_action = ""
-
-		if keypoints != []:
-
-			c = max(keypoints, key = cv2.contourArea)
-			x, rad = cv2.minEnclosingCircle(c)
-			#print(x, rad)	
-			cv2.putText(frame, "Ball here", (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
-
-			dif = 320 - x[0]
-			
-			# MOVEMENT SECTION
-			if(dif<0):
-				mapped_speed = ((dif - (-320))/(0 - (-320)))*(0 - 10) + 10
-			else:
-				mapped_speed = ((dif - 320)/(0 - 320))*(0 - (-10)) - 10
-
-			#print(mapped_speed)
-
-			if(directed):
-				if(at_ball):
-					md.stop()
-					print("kohal")
-				else:
-					drive_to(time_passed, mapped_speed, rad)
-			else:
-				direct(time_passed, mapped_speed)
-			"""
-			if(rad <= 23):
-				movement_action = "siin"
-				if(abs(dif) <= thyst):
-					movement_action = "siin2"
-					if(paigas != True):
-						movement_action = "siin3"
-						md.stop()
-						paigas = True
-					send_command(time_passed, "f", dif)
-					movement_action = "forwards"
-				else:
-					paigas = False
-
-				if(dif > 0 and not paigas):
-					send_command(time_passed,"spinright")
-					movement_action = "rightspin"
-
-				if(dif < 0 and not paigas):
-					send_command(time_passed,"spinleft")
-					movement_action = "leftspin"
-
-			else:
-				movement_action = "ball infront"
+		if(x[0] <= 340 and x[0] >= 300 ):
+			throw_ready = True
+			md.stop()
 		else:
-			static_ball_time = time.time()
-			print("Static else")
+			send_command(time_passed, "circle")
+	
+movement_action = ""
 
-		if not found:
-			send_command(time_passed,"searchright")
-			movement_action = "searching"
+def vision(frame, lowerLimits, upperLimits):
+	# Capture frame-by-frame
 
-		"""
-		else:
-			find_ball(time_passed)
-			movement_action = "searching"
+	hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-		cv2.imshow("Object", frame)
+    # Our operations on the frame come here
+	thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
 
-		frameCounter += 1
+    #Morphological operation
+	kernel = np.ones((5,5),np.uint8)
+    #erosion = cv2.erode(thresholded,kernel,iterations = 1)
+    #dilation = cv2.dilate(thresholded,kernel,iterations = 1)
+    #thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
+	thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
+
+	#outimage = cv2.bitwise_and(frame, frame, mask = thresholded)
+
+    #Keypoint detection
+	#keypoints = detector.detect(thresholded)
+	
+	keypoints, erra = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	return keypoints
+
+
+
+while(True):
+	now_time = time.time()
+
+	#print(time_passed, now_time - static_time, now_time, static_time)
+	if(now_time - static_time >= send_dif):
+		time_passed = True
+
+	frames = pipeline.wait_for_frames()
+	color_frame = frames.get_color_frame()
+	frame = np.asanyarray(color_frame.get_data())
+	
+	ball_keypoints = vision(frame, ball_lower_limits, ball_upper_limits)
+
+	if ball_keypoints != []:
+
+		c = max(ball_keypoints, key = cv2.contourArea)
+		x, rad = cv2.minEnclosingCircle(c)
+		#print(x, rad)	
+		cv2.putText(frame, "Ball here", (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
+
+		dif = 320 - x[0]
 		
-		if now_time-start_time >= 1:
-			print("FPS:", frameCounter," | " ,movement_action)
-			start_time = time.time()
-			frameCounter = 0
-	    # Display the resulting frame
-	    
-		if cv2.waitKey(1) & 0xFF == ord('q'):
-			pipeline.stop()
-			break
+		# MOVEMENT SECTION
+		if(dif<0):
+			mapped_speed = ((dif - (-320))/(0 - (-320)))*(0 - 10) + 10
+		else:
+			mapped_speed = ((dif - 320)/(0 - 320))*(0 - (-10)) - 10
 
-	# When everything done, release the capture
+		#print(mapped_speed)
 
-except Exception as e:
-	print(e)
-	md.close_connection()
+		if(directed):
+			if(at_ball):
+				if(throw_ready):
+					print("throw")
+				else:
+					rotate(time_passed, rad, x, frame)
+			else:
+				drive_to(time_passed, mapped_speed, rad)
+		else:
+			direct(time_passed, mapped_speed)
+	else:
+		find_ball(time_passed)
+		movement_action = "searching"
+
+	cv2.imshow("Object", frame)
+
+	frameCounter += 1
+	
+	if now_time-start_time >= 1:
+		print("FPS:", frameCounter," | " ,movement_action)
+		start_time = time.time()
+		frameCounter = 0
+    # Display the resulting frame
+    
+	if cv2.waitKey(1) & 0xFF == ord('q'):
+		pipeline.stop()
+		break
+

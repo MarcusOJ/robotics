@@ -1,0 +1,27 @@
+{
+"goal":{
+	"h_min": 1,
+	"s_min": 1,
+	"v_min": 1,
+	"h_max": 1,
+	"s_max": 1,
+	"v_max": 1
+},
+"ball":{
+	"h_min": 1,
+	"s_min": 1,
+	"v_min": 1,
+	"h_max": 1,
+	"s_max": 1,
+	"v_max": 1
+},
+"line":{
+	"h_min": 1,
+	"s_min": 1,
+	"v_min": 1,
+	"h_max": 1,
+	"s_max": 1,
+	"v_max": 1
+},
+"default": 1
+}

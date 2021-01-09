@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import time
 import pyrealsense2 as rs
+import json
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -35,30 +36,40 @@ def updateValue(new_value):
 	trackbar_value = new_value
 	return  
 
-#Väärtuste lugemine failist
-default = [100, 100, 100, 100, 100, 100]
-try:
-	c = open("trackbar_value.txt", "r")
-except FileNotFoundError:
-	c = open("trackbar_value.txt", "w+")
-	c.write(str(default))
-contents = c.read()
-if contents == "":
-	contents = str(default)
+with open("values.json", "r") as jfile:
+	data = json.load(jfile)
 
-contents = contents.replace("[", "")
-contents = contents.replace("]", "")
-contents = contents.replace(",", " ")
-ct = contents.split()
-c.close()
+obj = ""
+#print(data)
+# 0 = bluegoal, 1 = pinkgoal, 2 = ball, 3 = line
+try:
+	if(data["default"] == 0):
+		obj = "bluegoal"
+	elif(data["default"] == 1):
+		obj = "pinkgoal"
+	elif(data["default"] == 2):
+		obj = "ball"
+	elif(data["default"] == 3):
+		obj = "line"
+except KeyError:
+	print("could not find key")
+
+
+h_min = data[obj]["h_min"]
+s_min = data[obj]["s_min"]
+v_min = data[obj]["v_min"]
+h_max = data[obj]["h_max"]
+s_max = data[obj]["s_max"]
+v_max = data[obj]["v_max"]
 
 cv2.namedWindow("Processed")
-cv2.createTrackbar("h_min", "Processed", int(ct[0]), 179, updateValue)
-cv2.createTrackbar("s_min", "Processed", int(ct[1]), 255, updateValue)
-cv2.createTrackbar("v_min", "Processed", int(ct[2]), 255, updateValue)
-cv2.createTrackbar("h_max", "Processed", int(ct[3]), 179, updateValue)
-cv2.createTrackbar("s_max", "Processed", int(ct[4]), 255, updateValue)
-cv2.createTrackbar("v_max", "Processed", int(ct[5]), 255, updateValue)
+cv2.createTrackbar("h_min", "Processed", h_min, 179, updateValue)
+cv2.createTrackbar("s_min", "Processed", s_min, 255, updateValue)
+cv2.createTrackbar("v_min", "Processed", v_min, 255, updateValue)
+cv2.createTrackbar("h_max", "Processed", h_max, 179, updateValue)
+cv2.createTrackbar("s_max", "Processed", s_max, 255, updateValue)
+cv2.createTrackbar("v_max", "Processed", v_max, 255, updateValue)
+cv2.createTrackbar("option", "Processed", data["default"], 3, updateValue)
 
 
 
@@ -77,15 +88,17 @@ while(True):
 	hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	
 	# colour detection limits
-	lB = cv2.getTrackbarPos("h_min", "Processed")
-	lG = cv2.getTrackbarPos("s_min", "Processed")
-	lR = cv2.getTrackbarPos("v_min", "Processed")
-	hB = cv2.getTrackbarPos("h_max", "Processed")
-	hG = cv2.getTrackbarPos("s_max", "Processed")
-	hR = cv2.getTrackbarPos("v_max", "Processed")
+	lH = cv2.getTrackbarPos("h_min", "Processed")
+	lS = cv2.getTrackbarPos("s_min", "Processed")
+	lV = cv2.getTrackbarPos("v_min", "Processed")
+	hH = cv2.getTrackbarPos("h_max", "Processed")
+	hS = cv2.getTrackbarPos("s_max", "Processed")
+	hV = cv2.getTrackbarPos("v_max", "Processed")
+	opt = cv2.getTrackbarPos("option", "Processed")
 
-	lowerLimits = np.array([lB, lG, lR])
-	upperLimits = np.array([hB, hG, hR])
+
+	lowerLimits = np.array([lH, lS, lV])
+	upperLimits = np.array([hH, hS, hV])
 
 	# Our operations on the frame come here
 	thresholded = cv2.inRange(hsv_frame, lowerLimits, upperLimits)
@@ -110,7 +123,7 @@ while(True):
 		c = max(keypoints, key = cv2.contourArea)
 		x, rad = cv2.minEnclosingCircle(c)
 		#print(x, rad)	
-		cv2.putText(img_cp, "Ball here", (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
+		cv2.putText(img_cp, "Object here", (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
 		
 		dif = 320 - x[0]
 		thyst = 20
@@ -128,7 +141,7 @@ while(True):
 	frameCounter += 1
 	
 	if now_time-start_time >= 1:
-		print("FPS:", frameCounter," | " ,movement_action, " | ", rad)
+		print("FPS:", frameCounter," | " ,movement_action)
 		start_time = time.time()
 		frameCounter = 0
 	# Display the resulting frame
@@ -141,9 +154,26 @@ while(True):
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		f = open("trackbar_value.txt", "w+")
 		pipeline.stop()
-		output = [lB, lG, lR, hB, hG, hR]
-		f.write(str(output))
-		f.close()
+		output = {
+			"h_min": lH,
+			"s_min": lS,
+			"v_min": lV,
+			"h_max": hH,
+			"s_max": hS,
+			"v_max": hV
+			}
+		print(output)
+		with open('values.json', 'r') as file:
+			json_data = json.load(file)
+			for item in json_data[obj]:
+				json_data[obj][item] = output[item]
+			json_data["default"] = opt
+			#print(json_data)
+		with open('values.json', 'w') as file:
+			json.dump(json_data, file, indent=2)
+		
+		#f.write(str(output))
+		#f.close()
 		break
 
 # When everything done, release the capture

@@ -1,0 +1,35 @@
+{
+  "pinkgoal": {
+    "s_max": 229,
+    "v_max": 196,
+    "s_min": 208,
+    "h_max": 177,
+    "v_min": 174,
+    "h_min": 172
+  },
+  "ball": {
+    "s_max": 255,
+    "v_max": 195,
+    "s_min": 92,
+    "h_max": 27,
+    "v_min": 93,
+    "h_min": 12
+  },
+  "line": {
+    "s_max": 155,
+    "v_max": 153,
+    "s_min": 119,
+    "h_max": 5,
+    "v_min": 125,
+    "h_min": 2
+  },
+  "default": 3,
+  "bluegoal": {
+    "s_max": 116,
+    "v_max": 128,
+    "s_min": 89,
+    "h_max": 139,
+    "v_min": 94,
+    "h_min": 112
+  }
+}

@@ -42,11 +42,6 @@ def spinright():
 def spinleft():
     ser.write('sd:10:10:10\r\n'.encode('utf-8'))
 
-
-def circleBall():
-    ser.write('sd:-9:0:0\r\n'.encode('utf-8'))
-
-
 def searchright():
     ser.write('sd:16:16:16\r\n'.encode('utf-8'))
 
@@ -58,7 +53,10 @@ def spin(speed):
 def forward_adjust(speed):
     ser.write(('sd:' + str(speed) + ':40:-40\r\n').encode('utf-8'))
     sleep(0.05)
-    ser.read()    
+    ser.read()   
+
+def circleBall():
+    ser.write('sd:-30:0:0\r\n'.encode('utf-8')) 
 
 def setspeed(suund):
     speed = 40

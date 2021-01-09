@@ -44,7 +44,7 @@ def spinleft():
 
 
 def circleBall():
-    ser.write('sd:-9:0:0\r\n'.encode('utf-8'))
+    ser.write('sd:-30:0:0\r\n'.encode('utf-8'))
 
 def test(speed):
     ser.write('sd:' + speed + ':5:5\r\n'.encode('utf-8'))
@@ -117,6 +117,8 @@ while(True):
         stop()
     if key == ord("t"):
         test()
+    if key == ord("c"):
+        circleBall()
     if key == ord("q"):
         print("q")
         shutdown()
