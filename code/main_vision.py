@@ -9,6 +9,7 @@ import json
 pipeline = rs.pipeline()
 config = rs.config()
 config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 60)
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 60)
 #pipeline.start(config)
 
 profile = pipeline.start(config)
@@ -38,20 +39,33 @@ line_upper_limits = np.array([data["line"]["h_max"], data["line"]["s_max"], data
 frameCounter = 0
 start_time = time.time()
 
-frames = pipeline.wait_for_frames()
-color_frame = frames.get_color_frame()
-frame = np.asanyarray(color_frame.get_data())
+#frames = pipeline.wait_for_frames()
+#color_frame = frames.get_color_frame()
+#frame = np.asanyarray(color_frame.get_data())
+#depth_frame = frames.get_depth_frame()
 time.sleep(1)
 
-global time_passed, static_time, movement_action
+global time_passed, static_time, movement_action, at_ball, throw_ready, time_pas, directed
 time_passed = False
 static_time = time.time()
+static_time_line = time.time()
 send_dif = 0.2
 directed = False
 at_ball = False
 throw_ready = False
 blue = False
+ran_list = []
+time_pas = False
+precentage = 0
 
+def reset():
+	global time_passed, static_time, movement_action, at_ball, throw_ready, time_pas, directed
+	time_passed = False
+	directed = False
+	at_ball = False
+	throw_ready = False
+	time_pas = False
+	time_passed = False
 
 def send_command(can_send, command, value=1):
 	global time_passed, static_time
@@ -71,14 +85,17 @@ def send_command(can_send, command, value=1):
 		elif(command == "forward_adjust"):
 			md.forward_adjust(value)
 		elif(command == "circle"):
-			md.circleBall()
+			md.circleBall(value)
+		elif(command == "skip"):
+			md.skip_90()
 
 		time_passed = False
 		static_time = time.time()
-		print("saadetud")
+		#print("saadetud")
 
 def find_ball(time_passed):
 	send_command(time_passed, "searchright")
+
 
 def direct(time_passed, mapped_speed):
 	global movement_action
@@ -89,16 +106,21 @@ def direct(time_passed, mapped_speed):
 		directed = True
 
 def drive_to(time_passed, mapped_speed, rad):
-	global movement_action
+	global movement_action, precentage, directed
 	global directed, at_ball
-	send_command(time_passed, "forward_adjust", (mapped_speed-0.8) * 6)
+	send_command(time_passed, "forward_adjust", (mapped_speed-0.8) * (rad/2))
 	movement_action = "drive_to"
-	print(rad)
-	if(rad > 28):
+
+	if(rad > 19):
+		if(precentage < 60):
+			directed = False
+			print("skip")
+			send_command(time_passed, "skip")
+	if(rad > 25):
 		at_ball = True
 
-def rotate(time_passed, rad, x, frame):
-	global movement_action
+def rotate(time_passed, rad, x, frame, mapped_speed):
+	global movement_action, throw_ready
 	movement_action = "rotate"
 	if(blue):
 		keypoints = vision(frame, blue_lower_limits, blue_upper_limits)
@@ -109,11 +131,34 @@ def rotate(time_passed, rad, x, frame):
 		c = max(keypoints, key = cv2.contourArea)
 		x, rad = cv2.minEnclosingCircle(c)
 		
+		movement_action += str(x) + " |  " + str(rad)
+
 		if(x[0] <= 340 and x[0] >= 300 ):
 			throw_ready = True
+			#print("Throw ready = " + str(throw_ready))
 			md.stop()
+
 		else:
-			send_command(time_passed, "circle")
+			send_command(time_passed, "circle", mapped_speed * 2)
+
+
+def throw(time_passed, vision, depth_frame, frame):
+	global movement_action
+	if(blue):
+		keypoints = vision(frame, blue_lower_limits, blue_upper_limits)
+	else:
+		keypoints = vision(frame, pink_lower_limits, pink_upper_limits)
+
+	if keypoints != []:
+		c = max(keypoints, key = cv2.contourArea)
+		x, rad = cv2.minEnclosingCircle(c)
+		
+		if depth_frame:
+			distance = depth_frame.get_distance(int(x[0]), int(x[1]))
+			movement_action = "distance from goal: "+ str(distance)
+			sleep(1)
+			reset()
+	return
 	
 movement_action = ""
 
@@ -140,7 +185,30 @@ def vision(frame, lowerLimits, upperLimits):
 	keypoints, erra = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	return keypoints
 
-
+def checkline(frame, x):
+	global static_time_line, time_pas, ran_list, precentage
+	line_key = vision(frame, line_lower_limits, line_upper_limits)
+	if(len(line_key) != 0):
+		if(line_key != None):
+			behind = False
+			suurus = len(line_key)
+			muutuja = 0
+			if(suurus < 30):
+				precentage = 100
+				return
+			for i in line_key:
+				line = i[0][0].flat[1]
+				if(line < x[1]):
+					muutuja += 1
+			ran_list.append((muutuja/suurus)*100)
+		if(time_pas):
+			precentage = sum(ran_list)/len(ran_list)
+			print(str(precentage) + "%")
+			ran_list = []
+			time_pas = False
+			static_time_line = time.time()
+	else:
+		precentage = 100
 
 while(True):
 	now_time = time.time()
@@ -148,11 +216,14 @@ while(True):
 	#print(time_passed, now_time - static_time, now_time, static_time)
 	if(now_time - static_time >= send_dif):
 		time_passed = True
+	if(now_time - static_time_line >= 0.2):
+		time_pas = True
 
 	frames = pipeline.wait_for_frames()
 	color_frame = frames.get_color_frame()
 	frame = np.asanyarray(color_frame.get_data())
-	
+	depth_frame = frames.get_depth_frame()
+
 	ball_keypoints = vision(frame, ball_lower_limits, ball_upper_limits)
 
 	if ball_keypoints != []:
@@ -171,13 +242,15 @@ while(True):
 			mapped_speed = ((dif - 320)/(0 - 320))*(0 - (-10)) - 10
 
 		#print(mapped_speed)
+		checkline(frame, x)
+		#print(precentage)
 
 		if(directed):
 			if(at_ball):
 				if(throw_ready):
-					print("throw")
+					throw(time_passed, vision, depth_frame, frame)
 				else:
-					rotate(time_passed, rad, x, frame)
+					rotate(time_passed, rad, x, frame, mapped_speed)
 			else:
 				drive_to(time_passed, mapped_speed, rad)
 		else:

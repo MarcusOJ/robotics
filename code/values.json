@@ -1,35 +1,35 @@
 {
   "bluegoal": {
-    "h_min": 112,
-    "s_min": 89,
     "v_max": 128,
+    "s_max": 116,
     "h_max": 139,
+    "s_min": 89,
     "v_min": 94,
-    "s_max": 116
+    "h_min": 112
   },
-  "default": 1,
+  "default": 3,
+  "ball": {
+    "v_max": 195,
+    "s_max": 255,
+    "h_max": 27,
+    "s_min": 92,
+    "v_min": 93,
+    "h_min": 12
+  },
   "pinkgoal": {
-    "h_min": 164,
-    "s_min": 203,
-    "v_max": 188,
+    "v_max": 191,
+    "s_max": 224,
     "h_max": 176,
-    "v_min": 145,
-    "s_max": 240
+    "s_min": 207,
+    "v_min": 158,
+    "h_min": 166
   },
   "line": {
-    "h_min": 2,
-    "s_min": 119,
     "v_max": 153,
+    "s_max": 155,
     "h_max": 5,
+    "s_min": 119,
     "v_min": 125,
-    "s_max": 155
-  },
-  "ball": {
-    "h_min": 12,
-    "s_min": 92,
-    "v_max": 195,
-    "h_max": 27,
-    "v_min": 93,
-    "s_max": 255
+    "h_min": 2
   }
 }

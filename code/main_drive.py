@@ -55,8 +55,12 @@ def forward_adjust(speed):
     sleep(0.05)
     ser.read()   
 
-def circleBall():
-    ser.write('sd:-30:0:0\r\n'.encode('utf-8')) 
+def circleBall(speed):
+    ser.write(('sd:-30:' + str(speed) + ':0\r\n').encode('utf-8')) 
+
+def skip_90():
+    ser.write('sd:16:16:16\r\n'.encode('utf-8'))
+    sleep(0.5)
 
 def setspeed(suund):
     speed = 40
