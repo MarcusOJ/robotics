@@ -50,8 +50,9 @@ def spin(speed):
     sleep(0.05)
     ser.read()
 
-def forward_adjust(speed):
-    ser.write(('sd:' + str(speed) + ':40:-40\r\n').encode('utf-8'))
+def forward_adjust(speed, another):
+    #print('sd:' + str(speed) + ':' + str(another) + ':-' + str(another) + '\r\n')
+    ser.write(('sd:' + str(speed) + ':' + str(another) + ':-' + str(another) + '\r\n').encode('utf-8'))
     sleep(0.05)
     ser.read()   
 

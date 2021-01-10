@@ -37,7 +37,7 @@ def checkline(frame, x):
 	if(line_key != None):
 		behind = False
 		suurus = len(line_key)
-		print(suurus)
+		#print(suurus)
 		muutuja = 0
 		for i in line_key:
 			line = i[0][0].flat[1]
@@ -87,7 +87,7 @@ while(True):
 	now_time = time.time()
 
 	if(now_time - static_time >= 1):
-		#print(rad)
+		print(rad)
 		time_pas= True
 	
 	# Capture frame-by-frame

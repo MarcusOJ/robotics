@@ -45,7 +45,7 @@ start_time = time.time()
 #depth_frame = frames.get_depth_frame()
 time.sleep(1)
 
-global time_passed, static_time, movement_action, at_ball, throw_ready, time_pas, directed
+global time_passed, static_time, movement_action, at_ball, throw_ready, time_pas, directed, speed, timeout_init, timeout_rotate, static_time_rotate
 time_passed = False
 static_time = time.time()
 static_time_line = time.time()
@@ -57,6 +57,10 @@ blue = False
 ran_list = []
 time_pas = False
 precentage = 0
+speed = 40
+static_time_rotate = time.time()
+timeout_rotate = False
+timeout_init = False
 
 def reset():
 	global time_passed, static_time, movement_action, at_ball, throw_ready, time_pas, directed
@@ -67,7 +71,7 @@ def reset():
 	time_pas = False
 	time_passed = False
 
-def send_command(can_send, command, value=1):
+def send_command(can_send, command, value=1, value_2=1):
 	global time_passed, static_time
 	if(can_send):
 		if(command == "stop"):
@@ -83,7 +87,7 @@ def send_command(can_send, command, value=1):
 		elif(command == "spin"):
 			md.spin(value)
 		elif(command == "forward_adjust"):
-			md.forward_adjust(value)
+			md.forward_adjust(value, value_2)
 		elif(command == "circle"):
 			md.circleBall(value)
 		elif(command == "skip"):
@@ -108,10 +112,10 @@ def direct(time_passed, mapped_speed):
 def drive_to(time_passed, mapped_speed, rad):
 	global movement_action, precentage, directed
 	global directed, at_ball
-	send_command(time_passed, "forward_adjust", (mapped_speed-0.8) * (rad/2))
+	send_command(time_passed, "forward_adjust", (mapped_speed-0.8) * (rad/2), int(speed))
 	movement_action = "drive_to"
 
-	if(rad > 19):
+	if(rad > 10):
 		if(precentage < 60):
 			directed = False
 			print("skip")
@@ -120,7 +124,7 @@ def drive_to(time_passed, mapped_speed, rad):
 		at_ball = True
 
 def rotate(time_passed, rad, x, frame, mapped_speed):
-	global movement_action, throw_ready
+	global movement_action, throw_ready, at_ball, directed, timeout_rotate, timeout_init, static_time_rotate
 	movement_action = "rotate"
 	if(blue):
 		keypoints = vision(frame, blue_lower_limits, blue_upper_limits)
@@ -140,6 +144,16 @@ def rotate(time_passed, rad, x, frame, mapped_speed):
 
 		else:
 			send_command(time_passed, "circle", mapped_speed * 2)
+	if(timeout_rotate):
+		at_ball = False
+		directed = False
+		timeout_rotate = False
+		timeout_init = False
+		print("reset")
+	if(not timeout_init):
+		static_time_rotate = time.time()
+		timeout_init = True
+		print("timeout init")
 
 
 def throw(time_passed, vision, depth_frame, frame):
@@ -156,7 +170,6 @@ def throw(time_passed, vision, depth_frame, frame):
 		if depth_frame:
 			distance = depth_frame.get_distance(int(x[0]), int(x[1]))
 			movement_action = "distance from goal: "+ str(distance)
-			sleep(1)
 			reset()
 	return
 	
@@ -203,7 +216,7 @@ def checkline(frame, x):
 			ran_list.append((muutuja/suurus)*100)
 		if(time_pas):
 			precentage = sum(ran_list)/len(ran_list)
-			print(str(precentage) + "%")
+			print(str(precentage) + "%", )
 			ran_list = []
 			time_pas = False
 			static_time_line = time.time()
@@ -218,6 +231,8 @@ while(True):
 		time_passed = True
 	if(now_time - static_time_line >= 0.2):
 		time_pas = True
+	if(now_time - static_time_rotate >= 7):
+		timeout_rotate = True
 
 	frames = pipeline.wait_for_frames()
 	color_frame = frames.get_color_frame()
@@ -230,6 +245,9 @@ while(True):
 
 		c = max(ball_keypoints, key = cv2.contourArea)
 		x, rad = cv2.minEnclosingCircle(c)
+		speed = 80/(rad/8)
+		if(speed > 90):
+			speed = 90
 		#print(x, rad)	
 		cv2.putText(frame, "Ball here", (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
 
