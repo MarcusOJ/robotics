@@ -31,7 +31,7 @@ frameCounter = 0
 start_time = time.time()
 ran_list = []
 
-def checkline(frame, x):
+def checkline(frame, x, rad):
 	global static_time, time_pas, ran_list
 	line_key = vision(frame, line_lower_limits, line_upper_limits)
 	if(line_key != None):
@@ -47,7 +47,7 @@ def checkline(frame, x):
 		#if muutuja == suurus - 10:
 			#behind = True
 	if(time_pas):
-		print(sum(ran_list)/len(ran_list))
+		print("precentage: " + str(round(sum(ran_list)/len(ran_list))) + " | rad: " + str(round(rad)))
 		ran_list = []
 		time_pas = False
 		static_time = time.time()
@@ -87,7 +87,6 @@ while(True):
 	now_time = time.time()
 
 	if(now_time - static_time >= 1):
-		print(rad)
 		time_pas= True
 	
 	# Capture frame-by-frame
@@ -105,7 +104,7 @@ while(True):
 		#print(x, rad)	
 		#cv2.putText(img_cp, "Object here", (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
 		
-		checkline(frame, x)
+		checkline(frame, x, rad)
 
 		dif = 320 - x[0]
 		thyst = 20

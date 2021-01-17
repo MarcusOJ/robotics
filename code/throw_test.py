@@ -3,6 +3,7 @@ import cv2
 import time
 import pyrealsense2 as rs
 import json
+import main_drive as md
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -75,6 +76,7 @@ cv2.createTrackbar("option", "Processed", data["default"], 3, updateValue)
 
 frameCounter = 0
 start_time = time.time()
+movement_action = ""
 
 while(True):
 	now_time = time.time()
@@ -117,7 +119,7 @@ while(True):
 	
 	keypoints, erra = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-	movement_action = ""
+	
 	depth_frame = frames.get_depth_frame()
 
 	if keypoints != []:
@@ -129,26 +131,15 @@ while(True):
 		
 		if depth_frame:
 			distance = depth_frame.get_distance(int(x[0]), int(x[1]))
-			movement_action += str(distance)
+			movement_action = str(distance)
 			#print(distance)
-
-		dif = 320 - x[0]
-		thyst = 20
-
-		if(abs(dif) <= thyst):
-			movement_action = "stop"
-		if(dif < 0):
-			movement_action = "rightspin"
-		if(dif > 0):
-			movement_action = "leftspin"
-
 
 	else:
 		movement_action = "searching"
 	frameCounter += 1
 	
 	if now_time-start_time >= 1:
-		print("FPS:", frameCounter," | " ,movement_action, "rad: ", rad)
+		print("FPS:", frameCounter," | " ,movement_action)
 		start_time = time.time()
 		frameCounter = 0
 	# Display the resulting frame
@@ -158,7 +149,11 @@ while(True):
 	cv2.imshow('Processed', thresholded)
 	cv2.imshow("Object", img_cp)
 	# cv2.imshow("Original", frame)
-	if cv2.waitKey(1) & 0xFF == ord('q'):
+	
+	
+	key = cv2.waitKey(1) & 0xFF
+
+	if key == ord("q"):
 		f = open("trackbar_value.txt", "w+")
 		pipeline.stop()
 		output = {
@@ -182,6 +177,9 @@ while(True):
 		#f.write(str(output))
 		#f.close()
 		break
+	elif key == ord('t'):
+		md.throw(167)
+		print("throw")
 
 # When everything done, release the capture
 

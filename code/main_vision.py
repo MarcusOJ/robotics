@@ -53,11 +53,11 @@ send_dif = 0.2
 directed = False
 at_ball = False
 throw_ready = False
-blue = False
+blue = True
 ran_list = []
 time_pas = False
 precentage = 0
-speed = 40
+speed = 20
 static_time_rotate = time.time()
 timeout_rotate = False
 timeout_init = False
@@ -73,6 +73,10 @@ def reset():
 
 def send_command(can_send, command, value=1, value_2=1):
 	global time_passed, static_time
+
+	if(command == "skip"):
+		md.skip_90()
+
 	if(can_send):
 		if(command == "stop"):
 			md.stop()
@@ -90,8 +94,6 @@ def send_command(can_send, command, value=1, value_2=1):
 			md.forward_adjust(value, value_2)
 		elif(command == "circle"):
 			md.circleBall(value)
-		elif(command == "skip"):
-			md.skip_90()
 
 		time_passed = False
 		static_time = time.time()
@@ -113,14 +115,16 @@ def drive_to(time_passed, mapped_speed, rad):
 	global movement_action, precentage, directed
 	global directed, at_ball
 	send_command(time_passed, "forward_adjust", (mapped_speed-0.8) * (rad/2), int(speed))
-	movement_action = "drive_to"
+	movement_action = "drive_to | " + "precentage: " + str(round(precentage)) + "% | rad: " + str(round(rad))
 
 	if(rad > 10):
-		if(precentage < 60):
+		if(precentage < 50):
 			directed = False
-			print("skip")
+			movement_action += "| skip"
 			send_command(time_passed, "skip")
-	if(rad > 25):
+	if(rad > 35):
+		md.stop()
+		movement_action += " | at ball"
 		at_ball = True
 
 def rotate(time_passed, rad, x, frame, mapped_speed):
@@ -135,15 +139,18 @@ def rotate(time_passed, rad, x, frame, mapped_speed):
 		c = max(keypoints, key = cv2.contourArea)
 		x, rad = cv2.minEnclosingCircle(c)
 		
-		movement_action += str(x) + " |  " + str(rad)
-
+		movement_action +=  " | goal: " + str(round(x[0])) + " | rad: " + str(rad)
 		if(x[0] <= 340 and x[0] >= 300 ):
-			throw_ready = True
-			#print("Throw ready = " + str(throw_ready))
-			md.stop()
+			if(x[0] <= 340 and x[0] >= 300 ):
+				throw_ready = True
+				print("Throw ready = " + str(throw_ready))
+				md.stop()
+				exit()
 
-		else:
-			send_command(time_passed, "circle", mapped_speed * 2)
+	else:
+		movement_action += " | no goal"
+		send_command(time_passed, "circle", mapped_speed * 2)
+	"""
 	if(timeout_rotate):
 		at_ball = False
 		directed = False
@@ -154,7 +161,7 @@ def rotate(time_passed, rad, x, frame, mapped_speed):
 		static_time_rotate = time.time()
 		timeout_init = True
 		print("timeout init")
-
+	"""
 
 def throw(time_passed, vision, depth_frame, frame):
 	global movement_action
@@ -199,7 +206,7 @@ def vision(frame, lowerLimits, upperLimits):
 	return keypoints
 
 def checkline(frame, x):
-	global static_time_line, time_pas, ran_list, precentage
+	global static_time_line, time_pas, ran_list, precentage, movement_action
 	line_key = vision(frame, line_lower_limits, line_upper_limits)
 	if(len(line_key) != 0):
 		if(line_key != None):
@@ -216,7 +223,7 @@ def checkline(frame, x):
 			ran_list.append((muutuja/suurus)*100)
 		if(time_pas):
 			precentage = sum(ran_list)/len(ran_list)
-			print(str(precentage) + "%", )
+			movement_action += " | " + str(precentage) + "%"
 			ran_list = []
 			time_pas = False
 			static_time_line = time.time()
@@ -231,9 +238,10 @@ while(True):
 		time_passed = True
 	if(now_time - static_time_line >= 0.2):
 		time_pas = True
+	"""
 	if(now_time - static_time_rotate >= 7):
 		timeout_rotate = True
-
+	"""
 	frames = pipeline.wait_for_frames()
 	color_frame = frames.get_color_frame()
 	frame = np.asanyarray(color_frame.get_data())
@@ -276,13 +284,16 @@ while(True):
 	else:
 		find_ball(time_passed)
 		movement_action = "searching"
+		directed = False
+		at_ball = False
+		throw_ready = False
 
 	cv2.imshow("Object", frame)
 
 	frameCounter += 1
 	
-	if now_time-start_time >= 1:
-		print("FPS:", frameCounter," | " ,movement_action)
+	if now_time-start_time >= 0.25:
+		print("FPS:", (frameCounter * 4)," | ", movement_action)
 		start_time = time.time()
 		frameCounter = 0
     # Display the resulting frame

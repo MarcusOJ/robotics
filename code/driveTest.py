@@ -49,6 +49,9 @@ def circleBall():
 def test(speed):
     ser.write('sd:' + speed + ':5:5\r\n'.encode('utf-8'))
 
+def servo():
+    ser.write('d:1000\r\n'.encode('utf-8'))
+
 def setspeed(suund):
     speed = 50
     spd1 = int(wheelLogic(speed, wheelone, dist, suund))
@@ -92,6 +95,14 @@ def left():
 # print("mootor3")
 # print(spd3)
 
+def throw(speed):
+    for i in range(5):
+        ser.write(('d:' + str(speed) + '\r\n').encode('utf-8'))
+        sleep(0.1)
+    forwards()
+    sleep(0.5)
+    stop()
+
 
 frame = np.zeros((200,200))
 
@@ -116,7 +127,8 @@ while(True):
     if key == ord("f"):
         stop()
     if key == ord("t"):
-        test()
+        throw(200)
+        print("throw")
     if key == ord("c"):
         circleBall()
     if key == ord("q"):

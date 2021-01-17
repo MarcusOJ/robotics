@@ -81,6 +81,13 @@ def setspeed(suund):
         ser.read()
     """
 
+def throw(speed):
+    for i in range(5):
+        ser.write(('d:' + str(speed) + '\r\n').encode('utf-8'))
+        sleep(0.1)
+    forwards()
+    sleep(0.5)
+    stop()
 
 def close_connection():
     ser.close()
