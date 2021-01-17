@@ -104,6 +104,9 @@ def throw(speed):
     stop()
 
 
+def stop_motor():
+    ser.write(('d:10\r\n').encode('utf-8'))
+
 frame = np.zeros((200,200))
 
 while(True):
@@ -126,6 +129,7 @@ while(True):
         spinleft()
     if key == ord("f"):
         stop()
+        stop_motor()
     if key == ord("t"):
         throw(200)
         print("throw")

@@ -57,7 +57,10 @@ def forward_adjust(speed, another):
     ser.read()   
 
 def circleBall(speed):
-    ser.write(('sd:-30:' + str(speed) + ':0\r\n').encode('utf-8')) 
+    ser.write(('sd:-45:' + str(speed) + ':0\r\n').encode('utf-8')) 
+
+def circle_slow(speed):
+    ser.write(('sd:-15:' + str(speed) + ':0\r\n').encode('utf-8')) 
 
 def skip_90():
     ser.write('sd:16:16:16\r\n'.encode('utf-8'))
@@ -82,12 +85,16 @@ def setspeed(suund):
     """
 
 def throw(speed):
-    for i in range(5):
+    for i in range(4):
         ser.write(('d:' + str(speed) + '\r\n').encode('utf-8'))
-        sleep(0.1)
+    sleep(0.1)
     forwards()
     sleep(0.5)
     stop()
+    
+
+def stop_motor():
+    ser.write(('d:10\r\n').encode('utf-8'))
 
 def close_connection():
     ser.close()

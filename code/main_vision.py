@@ -70,6 +70,7 @@ def reset():
 	throw_ready = False
 	time_pas = False
 	time_passed = False
+	md.stop_motor()
 
 def send_command(can_send, command, value=1, value_2=1):
 	global time_passed, static_time
@@ -94,6 +95,8 @@ def send_command(can_send, command, value=1, value_2=1):
 			md.forward_adjust(value, value_2)
 		elif(command == "circle"):
 			md.circleBall(value)
+		elif(command == "circle_slow"):
+			md.circle_slow(value)
 
 		time_passed = False
 		static_time = time.time()
@@ -140,16 +143,16 @@ def rotate(time_passed, rad, x, frame, mapped_speed):
 		x, rad = cv2.minEnclosingCircle(c)
 		
 		movement_action +=  " | goal: " + str(round(x[0])) + " | rad: " + str(rad)
-		if(x[0] <= 340 and x[0] >= 300 ):
-			if(x[0] <= 340 and x[0] >= 300 ):
+		if(x[0] <= 380 and x[0] >= 280 ):
+			if(x[0] <= 330 and x[0] >= 310 ):
 				throw_ready = True
 				print("Throw ready = " + str(throw_ready))
 				md.stop()
-				exit()
-
+		else:
+			send_command(time_passed, "circle_slow", mapped_speed)
 	else:
 		movement_action += " | no goal"
-		send_command(time_passed, "circle", mapped_speed * 2)
+		send_command(time_passed, "circle", mapped_speed * 3)
 	"""
 	if(timeout_rotate):
 		at_ball = False
@@ -177,6 +180,8 @@ def throw(time_passed, vision, depth_frame, frame):
 		if depth_frame:
 			distance = depth_frame.get_distance(int(x[0]), int(x[1]))
 			movement_action = "distance from goal: "+ str(distance)
+			speed = 210.364 + (166.8712 - 210.364)/(1 + (distance/2.119431)**3.002456)
+			md.throw(speed)
 			reset()
 	return
 	

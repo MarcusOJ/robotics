@@ -180,6 +180,7 @@ while(True):
 	elif key == ord('t'):
 		md.throw(167)
 		print("throw")
+		#y = 210.364 + (166.8712 - 210.364)/(1 + (x/2.119431)^3.002456)
 
 # When everything done, release the capture
 
