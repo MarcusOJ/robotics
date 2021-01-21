@@ -1,0 +1,4 @@
+* Luua võimekus kuulata kohtuniku käske üle websocketi
+* Palli otsimise võimekus - kui teeb ära kaks spinni siis liigub mingis suunas edasi .nt 1m ja kontrollib uuesti ümbrust, kui juba palli pole leidnud. Pideval kontrollib piirjooni.
+* Teha uus viskamise baseline uuele robotile
+* Kui aega, siis teha korvi asukoha meeldejätmine. Kas viimane asukoht oli paremal v vasakul. Siis saab palli suunamise kiiremini teha.
