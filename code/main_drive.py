@@ -43,7 +43,7 @@ def spinleft():
     ser.write('sd:10:10:10\r\n'.encode('utf-8'))
 
 def searchright():
-    ser.write('sd:16:16:16\r\n'.encode('utf-8'))
+    ser.write('sd:12:12:12\r\n'.encode('utf-8'))
 
 def spin(speed):
     ser.write(('sd:' + str(speed) + ':0:0\r\n').encode('utf-8'))
@@ -64,7 +64,7 @@ def circle_slow(speed):
 
 def skip_90():
     ser.write('sd:16:16:16\r\n'.encode('utf-8'))
-    sleep(0.5)
+    sleep(1)
 
 def setspeed(suund):
     speed = 40

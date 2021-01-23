@@ -5,6 +5,8 @@ import pyrealsense2 as rs
 import main_drive as md
 from time import sleep
 import json
+from websocket import create_connection
+from client import Client
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -61,7 +63,7 @@ send_dif = 0.2
 directed = False
 at_ball = False
 throw_ready = False
-blue = True
+blue = False
 ran_list = []
 time_pas = False
 precentage = 0
@@ -69,6 +71,10 @@ speed = 20
 static_time_rotate = time.time()
 timeout_rotate = False
 timeout_init = False
+robot = "tulihand"
+ws = create_connection('ws://localhost:8080')
+cl = Client(ws)
+cl.start()
 
 
 def reset():
@@ -139,7 +145,7 @@ def drive_to(time_passed, mapped_speed, rad):
             directed = False
             movement_action += "| skip"
             send_command(time_passed, "skip")
-    if(rad > 35):
+    if(rad > 34):
         md.stop()
         movement_action += " | at ball"
         at_ball = True
@@ -197,10 +203,12 @@ def throw(time_passed, vision, depth_frame, frame):
         if depth_frame:
             distance = depth_frame.get_distance(int(x[0]), int(x[1]))
             movement_action = "distance from goal: " + str(distance)
-            speed = 210.364 + (166.8712 - 210.364) / \
-                (1 + (distance/2.119431)**3.002456)
+            speed = (210.364 + (166.8712 - 210.364) / \
+                (1 + (distance/2.119431)**3.002456)) + 2
             md.throw(speed)
             reset()
+    else:
+        reset()
     return
 
 
@@ -240,14 +248,24 @@ def checkline(frame, x):
             behind = False
             suurus = len(line_key)
             muutuja = 0
+            linesum = 0
             if(suurus < 30):
                 precentage = 100
                 return
             for i in line_key:
                 line = i[0][0].flat[1]
+                linesum += line
                 if(line < x[1]):
                     muutuja += 1
             ran_list.append((muutuja/suurus)*100)
+            #print("ns: " + str(linesum/suurus))
+            #print(linesum/suurus)
+            if(250<linesum/suurus):
+                #print("valja")
+                print(linesum/suurus)
+                precentage = 0
+                linesum = 0
+                return
         if(time_pas):
             precentage = sum(ran_list)/len(ran_list)
             movement_action += " | " + str(precentage) + "%"
@@ -258,76 +276,81 @@ def checkline(frame, x):
         precentage = 100
 
 
-if __name__ == "main":
-	while(True):
-		now_time = time.time()
+go = False
 
-		#print(time_passed, now_time - static_time, now_time, static_time)
-		if(now_time - static_time >= send_dif):
-			time_passed = True
-		if(now_time - static_time_line >= 0.2):
-			time_pas = True
-		"""
-		if(now_time - static_time_rotate >= 7):
-			timeout_rotate = True
-		"""
-		frames = pipeline.wait_for_frames()
-		color_frame = frames.get_color_frame()
-		frame = np.asanyarray(color_frame.get_data())
-		depth_frame = frames.get_depth_frame()
+while(True):
 
-		ball_keypoints = vision(frame, ball_lower_limits, ball_upper_limits)
+    go, blue = cl.getter()
 
-		if ball_keypoints != []:
+    if go:
+        now_time = time.time()
 
-			c = max(ball_keypoints, key=cv2.contourArea)
-			x, rad = cv2.minEnclosingCircle(c)
-			speed = 80/(rad/8)
-			if(speed > 90):
-				speed = 90
-			#print(x, rad)
-			cv2.putText(frame, "Ball here", (int(x[0]), int(
-				x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
+        #print(time_passed, now_time - static_time, now_time, static_time)
+        if(now_time - static_time >= send_dif):
+        	time_passed = True
+        if(now_time - static_time_line >= 0.2):
+        	time_pas = True
+        """
+        if(now_time - static_time_rotate >= 7):
+        	timeout_rotate = True
+        """
+        frames = pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        frame = np.asanyarray(color_frame.get_data())
+        depth_frame = frames.get_depth_frame()
 
-			dif = 320 - x[0]
+        ball_keypoints = vision(frame, ball_lower_limits, ball_upper_limits)
 
-			# MOVEMENT SECTION
-			if(dif < 0):
-				mapped_speed = ((dif - (-320))/(0 - (-320)))*(0 - 10) + 10
-			else:
-				mapped_speed = ((dif - 320)/(0 - 320))*(0 - (-10)) - 10
+        if ball_keypoints != []:
 
-			# print(mapped_speed)
-			checkline(frame, x)
-			# print(precentage)
+        	c = max(ball_keypoints, key=cv2.contourArea)
+        	x, rad = cv2.minEnclosingCircle(c)
+        	speed = 80/(rad/8)
+        	if(speed > 90):
+        		speed = 90
+        	#print(x, rad)
+        	cv2.putText(frame, "Ball here", (int(x[0]), int(
+        		x[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 225, 0), 2)
 
-			if(directed):
-				if(at_ball):
-					if(throw_ready):
-						throw(time_passed, vision, depth_frame, frame)
-					else:
-						rotate(time_passed, rad, x, frame, mapped_speed)
-				else:
-					drive_to(time_passed, mapped_speed, rad)
-			else:
-				direct(time_passed, mapped_speed)
-		else:
-			find_ball(time_passed)
-			movement_action = "searching"
-			directed = False
-			at_ball = False
-			throw_ready = False
+        	dif = 320 - x[0]
 
-		cv2.imshow("Object", frame)
+        	# MOVEMENT SECTION
+        	if(dif < 0):
+        		mapped_speed = ((dif - (-320))/(0 - (-320)))*(0 - 10) + 10
+        	else:
+        		mapped_speed = ((dif - 320)/(0 - 320))*(0 - (-10)) - 10
 
-		frameCounter += 1
+        	# print(mapped_speed)
+        	checkline(frame, x)
+        	# print(precentage)
 
-		if now_time-start_time >= 0.25:
-			print("FPS:", (frameCounter * 4), " | ", movement_action)
-			start_time = time.time()
-			frameCounter = 0
-	# Display the resulting frame
+        	if(directed):
+        		if(at_ball):
+        			if(throw_ready):
+        				throw(time_passed, vision, depth_frame, frame)
+        			else:
+        				rotate(time_passed, rad, x, frame, mapped_speed)
+        		else:
+        			drive_to(time_passed, mapped_speed, rad)
+        	else:
+        		direct(time_passed, mapped_speed)
+        else:
+        	find_ball(time_passed)
+        	movement_action = "searching"
+        	directed = False
+        	at_ball = False
+        	throw_ready = False
 
-		if cv2.waitKey(1) & 0xFF == ord('q'):
-			pipeline.stop()
-			break
+        cv2.imshow("Object", frame)
+
+        frameCounter += 1
+
+        if now_time-start_time >= 0.25:
+        	print("FPS:", (frameCounter * 4), " | ", movement_action)
+        	start_time = time.time()
+        	frameCounter = 0
+        # Display the resulting frame
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+        	pipeline.stop()
+        	break
