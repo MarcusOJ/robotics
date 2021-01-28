@@ -1,0 +1,1 @@
+Et millelegi sisse ei sõidaks võiks pidevalt konrollida kaugust roboti ees olevast alast.
