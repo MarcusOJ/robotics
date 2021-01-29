@@ -1,3 +1,6 @@
 Et millelegi sisse ei sõidaks võiks pidevalt konrollida kaugust roboti ees olevast alast.
 ROS
 Live webpage muutujate ja logide jälgimiseks
+Brushless mootorid, et oleks rohkem ruumi elektroonikale ja juhtmete routimisele ning et sõidaks kiiremini.
+Sõidu ajal pööramine ja suunamine palli juurde jõuded
+Värava asukoha meelde jätmine
