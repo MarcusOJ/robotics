@@ -4,3 +4,4 @@ Live webpage muutujate ja logide jälgimiseks
 Brushless mootorid, et oleks rohkem ruumi elektroonikale ja juhtmete routimisele ning et sõidaks kiiremini.
 Sõidu ajal pööramine ja suunamine palli juurde jõuded
 Värava asukoha meelde jätmine
+99.9% efektiivne thrower
